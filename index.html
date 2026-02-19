@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1B2A4A">
+  <title>50-Point Home Safety & Readiness Audit — Rockwell Home Management</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+  <style>
+    :root { --navy:#1B2A4A; --navy-light:#2A3F6A; --gold:#C9953C; --gold-light:#E5B96A; --gold-dark:#A67B2E; --white:#FFF; --gray-50:#F8FAFC; --gray-100:#F1F5F9; --gray-200:#E2E8F0; --gray-300:#CBD5E1; --gray-400:#94A3B8; --gray-500:#64748B; --gray-600:#475569; --gray-700:#334155; --gray-800:#1E293B; --green:#10B981; --green-light:#D1FAE5; --red:#EF4444; --red-light:#FEE2E2; --yellow:#F59E0B; --yellow-light:#FEF3C7; --blue:#3B82F6; --blue-light:#DBEAFE; --radius:12px; --shadow:0 1px 3px rgba(0,0,0,0.1); --shadow-md:0 4px 6px -1px rgba(0,0,0,0.1); }
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--gray-50);color:var(--gray-800);min-height:100vh;font-size:16px;line-height:1.6}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+    .fade-in{animation:fadeIn .4s ease-out}
+
+    /* Header */
+    .audit-header{background:linear-gradient(135deg,var(--navy-dark,#0F1A30) 0%,var(--navy) 50%,var(--navy-light) 100%);color:white;padding:40px 24px;text-align:center}
+    .audit-header .logo{width:64px;height:64px;background:linear-gradient(135deg,var(--gold),var(--gold-dark));border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:28px;color:white}
+    .audit-header h1{font-size:28px;font-weight:800;margin-bottom:4px}
+    .audit-header p{font-size:15px;opacity:.8;max-width:500px;margin:0 auto}
+    .audit-header .price-badge{display:inline-block;background:var(--gold);color:white;padding:6px 20px;border-radius:20px;font-size:14px;font-weight:700;margin-top:16px}
+
+    /* Progress */
+    .progress-bar-container{background:white;border-bottom:1px solid var(--gray-200);padding:16px 24px;position:sticky;top:0;z-index:50}
+    .progress-info{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:13px;color:var(--gray-500);font-weight:600}
+    .progress-track{height:8px;background:var(--gray-200);border-radius:4px;overflow:hidden}
+    .progress-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-light));border-radius:4px;transition:width .5s ease}
+
+    /* Content */
+    .audit-content{max-width:800px;margin:0 auto;padding:24px}
+
+    /* Category */
+    .category{margin-bottom:24px}
+    .category-header{display:flex;align-items:center;gap:12px;padding:16px 20px;background:white;border-radius:var(--radius) var(--radius) 0 0;border:1px solid var(--gray-200);border-bottom:2px solid var(--gold);cursor:pointer}
+    .category-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;background:var(--navy);color:var(--gold)}
+    .category-title{flex:1}
+    .category-title h3{font-size:16px;font-weight:700;color:var(--navy)}
+    .category-title span{font-size:12px;color:var(--gray-500)}
+    .category-score{font-size:14px;font-weight:700;padding:4px 12px;border-radius:20px}
+    .category-score.good{background:var(--green-light);color:#065F46}
+    .category-score.warn{background:var(--yellow-light);color:#92400E}
+    .category-score.bad{background:var(--red-light);color:#991B1B}
+    .category-score.none{background:var(--gray-100);color:var(--gray-500)}
+
+    .category-items{background:white;border:1px solid var(--gray-200);border-top:none;border-radius:0 0 var(--radius) var(--radius);overflow:hidden}
+
+    /* Check Item */
+    .check-item{display:flex;align-items:flex-start;gap:14px;padding:14px 20px;border-bottom:1px solid var(--gray-100);transition:background .15s}
+    .check-item:hover{background:var(--gray-50)}
+    .check-item:last-child{border-bottom:none}
+    .check-number{width:28px;height:28px;border-radius:50%;background:var(--gray-100);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--gray-500);flex-shrink:0;margin-top:2px}
+    .check-content{flex:1}
+    .check-content label{font-size:14px;font-weight:500;color:var(--gray-700);cursor:pointer;display:block}
+    .check-content .sublabel{font-size:12px;color:var(--gray-400);margin-top:2px}
+    .check-actions{display:flex;gap:6px;flex-shrink:0}
+    .status-btn{width:36px;height:36px;border-radius:8px;border:2px solid var(--gray-200);background:white;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .2s}
+    .status-btn:hover{border-color:var(--gray-400)}
+    .status-btn.pass{border-color:var(--green);background:var(--green-light);color:var(--green)}
+    .status-btn.fail{border-color:var(--red);background:var(--red-light);color:var(--red)}
+    .status-btn.na{border-color:var(--gray-400);background:var(--gray-100);color:var(--gray-500)}
+
+    .note-input{width:100%;padding:8px 12px;border:1px solid var(--gray-200);border-radius:8px;font-size:13px;margin-top:8px;resize:none;font-family:inherit;outline:none}
+    .note-input:focus{border-color:var(--gold)}
+
+    /* Results */
+    .results-card{background:white;border-radius:var(--radius);border:1px solid var(--gray-200);padding:32px;text-align:center;margin-bottom:24px}
+    .score-circle{width:120px;height:120px;border-radius:50%;border:6px solid;display:flex;align-items:center;justify-content:center;flex-direction:column;margin:0 auto 20px}
+    .score-circle.high{border-color:var(--green);color:var(--green)}
+    .score-circle.mid{border-color:var(--yellow);color:var(--yellow)}
+    .score-circle.low{border-color:var(--red);color:var(--red)}
+    .score-num{font-size:36px;font-weight:800;line-height:1}
+    .score-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px}
+
+    .result-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:24px 0}
+    .result-stat{padding:16px;background:var(--gray-50);border-radius:var(--radius);border:1px solid var(--gray-200)}
+    .result-stat .num{font-size:24px;font-weight:800;color:var(--navy)}
+    .result-stat .lab{font-size:12px;color:var(--gray-500);font-weight:500}
+
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 24px;border-radius:var(--radius);font-size:15px;font-weight:600;cursor:pointer;border:none;transition:all .2s}
+    .btn-gold{background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:white;box-shadow:0 2px 8px rgba(201,149,60,0.3)}
+    .btn-gold:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(201,149,60,0.4)}
+    .btn-navy{background:var(--navy);color:white}
+    .btn-outline{background:transparent;color:var(--navy);border:2px solid var(--gray-200)}
+
+    .cta-section{background:linear-gradient(135deg,var(--navy),var(--navy-light));color:white;border-radius:var(--radius);padding:32px;text-align:center;margin-top:24px}
+    .cta-section h3{font-size:22px;font-weight:800;margin-bottom:8px}
+    .cta-section p{font-size:14px;opacity:.8;margin-bottom:20px;max-width:500px;margin-left:auto;margin-right:auto}
+
+    .trust-badges{display:flex;align-items:center;justify-content:center;gap:24px;flex-wrap:wrap;margin-top:24px;padding-top:24px;border-top:1px solid rgba(255,255,255,.15)}
+    .trust-badge{display:flex;align-items:center;gap:6px;font-size:12px;opacity:.7}
+    .trust-badge i{color:var(--gold)}
+
+    /* Landing intro */
+    .intro-section{background:white;border-radius:var(--radius);border:1px solid var(--gray-200);padding:32px;margin-bottom:24px}
+    .intro-section h2{font-size:20px;font-weight:700;color:var(--navy);margin-bottom:12px}
+    .intro-section p{font-size:14px;color:var(--gray-600);margin-bottom:16px}
+    .intro-features{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .intro-feature{display:flex;align-items:center;gap:10px;padding:12px;background:var(--gray-50);border-radius:8px;font-size:13px;font-weight:500;color:var(--gray-700)}
+    .intro-feature i{color:var(--gold);font-size:16px;width:20px;text-align:center}
+
+    .footer{text-align:center;padding:24px;font-size:12px;color:var(--gray-400)}
+    .footer a{color:var(--gray-400)}
+
+    @media(max-width:768px){
+      .audit-header h1{font-size:22px}
+      .audit-content{padding:16px}
+      .intro-features{grid-template-columns:1fr}
+      .result-grid{grid-template-columns:1fr}
+      .check-item{flex-wrap:wrap}
+      .check-actions{margin-top:8px;width:100%;justify-content:flex-end}
+      .trust-badges{flex-direction:column;gap:12px}
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useMemo } = React;
+
+    const CATEGORIES = [
+      { id: 'fire', name: 'Fire Safety', icon: 'fa-fire-extinguisher', items: [
+        { id: 1, text: 'Smoke detectors installed and functional on every level', sub: 'Test monthly; replace batteries annually' },
+        { id: 2, text: 'Carbon monoxide detectors installed near sleeping areas', sub: 'Required by Wisconsin law' },
+        { id: 3, text: 'Fire extinguisher accessible and not expired', sub: 'Kitchen + garage minimum' },
+        { id: 4, text: 'Dryer vent clean and free of lint buildup', sub: '#1 cause of residential fires' },
+        { id: 5, text: 'No overloaded electrical outlets or frayed cords', sub: 'Check behind furniture' },
+        { id: 6, text: 'Space heaters away from combustibles (3+ feet)', sub: 'Tip-over shut-off feature recommended' },
+        { id: 7, text: 'Stove/oven area clear of flammable materials', sub: 'Towels, curtains, paper' },
+        { id: 8, text: 'Emergency exit routes clear and accessible', sub: 'Two ways out of every room' },
+        { id: 9, text: 'Fireplace / chimney inspected within 12 months', sub: 'Annual cleaning recommended' },
+        { id: 10, text: 'GFCI outlets installed in wet areas (kitchen, bath)', sub: 'Test with the "test" button' },
+      ]},
+      { id: 'falls', name: 'Fall Prevention', icon: 'fa-person-falling', items: [
+        { id: 11, text: 'Grab bars installed in bathroom (tub/shower + toilet)', sub: 'Wall-mounted, not suction' },
+        { id: 12, text: 'Non-slip mats/strips in tub/shower', sub: 'Replace when worn smooth' },
+        { id: 13, text: 'Handrails on all staircases (both sides preferred)', sub: 'Secure, not wobbly' },
+        { id: 14, text: 'Adequate lighting in all walkways and stairs', sub: 'Night lights in hallways + bathroom' },
+        { id: 15, text: 'No loose rugs or tripping hazards on floors', sub: 'Secure with non-slip backing or remove' },
+        { id: 16, text: 'Frequently used items within easy reach (no step stools)', sub: 'Kitchen, closet, bathroom' },
+        { id: 17, text: 'Outdoor walkways and stairs in good repair', sub: 'No cracked concrete, ice management' },
+        { id: 18, text: 'Raised toilet seat or comfort-height toilet', sub: 'Recommended for mobility challenges' },
+        { id: 19, text: 'Shower bench or transfer seat if needed', sub: 'Reduces standing fatigue' },
+        { id: 20, text: 'Phone/emergency device accessible from floor level', sub: 'In case of a fall' },
+      ]},
+      { id: 'water', name: 'Water & Climate', icon: 'fa-droplet', items: [
+        { id: 21, text: 'Water heater temperature set to 120°F or below', sub: 'Prevents scald burns' },
+        { id: 22, text: 'No visible leaks under sinks or around toilets', sub: 'Check monthly' },
+        { id: 23, text: 'Sump pump functional and tested', sub: 'Critical for Wisconsin basements' },
+        { id: 24, text: 'HVAC filter clean and within replacement date', sub: 'Every 1-3 months depending on type' },
+        { id: 25, text: 'Thermostat programmed for safe temperature range', sub: 'Min 65°F in winter for senior safety' },
+        { id: 26, text: 'Gutters clear and draining away from foundation', sub: 'Check spring and fall' },
+        { id: 27, text: 'Basement / crawl space dry with no moisture issues', sub: 'Dehumidifier if needed' },
+        { id: 28, text: 'Main water shut-off valve accessible and labeled', sub: 'Everyone in home should know location' },
+        { id: 29, text: 'Outdoor hose bibs winterized (when applicable)', sub: 'Prevent pipe freeze/burst' },
+        { id: 30, text: 'Humidity levels appropriate (30-50%)', sub: 'Prevents mold and respiratory issues' },
+      ]},
+      { id: 'security', name: 'Entry & Security', icon: 'fa-lock', items: [
+        { id: 31, text: 'All exterior doors have working deadbolts', sub: 'Grade 1 or 2 preferred' },
+        { id: 32, text: 'Exterior lighting covers all entry points', sub: 'Motion-activated recommended' },
+        { id: 33, text: 'Garage door opens/closes reliably with auto-reverse', sub: 'Test with object in path' },
+        { id: 34, text: 'Windows lock securely and are not painted shut', sub: 'Emergency egress requirement' },
+        { id: 35, text: 'Key management system in place (no keys under mat)', sub: 'Coded lockbox or smart lock' },
+        { id: 36, text: 'Address clearly visible from street', sub: 'Reflective numbers for emergency responders' },
+        { id: 37, text: 'Mail and deliveries managed (no pileup)', sub: 'Sign of absence; security risk' },
+        { id: 38, text: 'Peephole or camera at front door', sub: 'Video doorbell recommended' },
+        { id: 39, text: 'Emergency contact list posted visibly', sub: 'Refrigerator or by phone' },
+        { id: 40, text: 'Door threshold areas level (no trip hazards)', sub: 'Weatherstripping intact' },
+      ]},
+      { id: 'readiness', name: 'Emergency Readiness', icon: 'fa-kit-medical', items: [
+        { id: 41, text: 'Medication list current and accessible', sub: 'Include dosages and prescribing doctors' },
+        { id: 42, text: 'Medical alert device or system in place', sub: 'Pendant, wristband, or phone-based' },
+        { id: 43, text: 'Emergency supply kit (flashlight, batteries, water)', sub: '72-hour supply recommended' },
+        { id: 44, text: 'Important documents organized and locatable', sub: 'POA, advance directive, insurance' },
+        { id: 45, text: 'Neighbor or nearby contact aware of resident', sub: 'Informal check-in arrangement' },
+        { id: 46, text: 'Utility shut-offs labeled and accessible', sub: 'Gas, water, electric' },
+        { id: 47, text: 'Backup power plan for critical equipment', sub: 'Medical devices, sump pump, phone' },
+        { id: 48, text: 'Pet provisions included in emergency plan', sub: 'Food, carrier, medications' },
+        { id: 49, text: 'Cell phone charged and emergency numbers saved', sub: 'ICE contacts in phone' },
+        { id: 50, text: 'Home insurance policy current and adequate', sub: 'Review annually with agent' },
+      ]},
+    ];
+
+    function App() {
+      const [started, setStarted] = useState(false);
+      const [statuses, setStatuses] = useState({});
+      const [notes, setNotes] = useState({});
+      const [showResults, setShowResults] = useState(false);
+      const [collapsed, setCollapsed] = useState({});
+      const [clientName, setClientName] = useState('');
+      const [clientAddress, setClientAddress] = useState('');
+
+      const setStatus = (id, status) => {
+        setStatuses(prev => ({ ...prev, [id]: prev[id] === status ? null : status }));
+      };
+
+      const stats = useMemo(() => {
+        const pass = Object.values(statuses).filter(v => v === 'pass').length;
+        const fail = Object.values(statuses).filter(v => v === 'fail').length;
+        const na = Object.values(statuses).filter(v => v === 'na').length;
+        const answered = pass + fail + na;
+        const applicable = 50 - na;
+        const score = applicable > 0 ? Math.round((pass / applicable) * 100) : 0;
+        return { pass, fail, na, answered, score, applicable };
+      }, [statuses]);
+
+      const catStats = (items) => {
+        const p = items.filter(i => statuses[i.id] === 'pass').length;
+        const f = items.filter(i => statuses[i.id] === 'fail').length;
+        const n = items.filter(i => statuses[i.id] === 'na').length;
+        const app = items.length - n;
+        const answered = p + f + n;
+        return { pass: p, fail: f, na: n, score: app > 0 ? Math.round((p/app)*100) : 0, answered };
+      };
+
+      if (!started) {
+        return (
+          <div>
+            <div className="audit-header">
+              <div className="logo"><i className="fas fa-clipboard-check"></i></div>
+              <h1>50-Point Home Safety & Readiness Audit</h1>
+              <p>A comprehensive inspection of fire safety, fall prevention, water systems, security, and emergency readiness</p>
+              <div className="price-badge"><i className="fas fa-tag" style={{marginRight:6}}></i>Professional Assessment — $150</div>
+            </div>
+            <div className="audit-content">
+              <div className="intro-section fade-in">
+                <h2>What's Included</h2>
+                <p>Our certified Fire Inspector conducts a thorough walk-through of the home, evaluating 50 critical safety and readiness checkpoints across five categories. You'll receive a detailed report with findings, risk ratings, and recommended actions.</p>
+                <div className="intro-features">
+                  <div className="intro-feature"><i className="fas fa-fire-extinguisher"></i> Fire Safety (10 points)</div>
+                  <div className="intro-feature"><i className="fas fa-person-falling"></i> Fall Prevention (10 points)</div>
+                  <div className="intro-feature"><i className="fas fa-droplet"></i> Water & Climate (10 points)</div>
+                  <div className="intro-feature"><i className="fas fa-lock"></i> Entry & Security (10 points)</div>
+                  <div className="intro-feature"><i className="fas fa-kit-medical"></i> Emergency Readiness (10 points)</div>
+                  <div className="intro-feature"><i className="fas fa-file-lines"></i> Detailed Report & Recommendations</div>
+                </div>
+              </div>
+
+              <div className="intro-section fade-in" style={{animationDelay:'.1s'}}>
+                <h2>Client Information</h2>
+                <div style={{display:'grid',gap:16}}>
+                  <div>
+                    <label style={{display:'block',fontSize:13,fontWeight:600,color:'var(--gray-700)',marginBottom:4}}>Client / Property Name</label>
+                    <input type="text" value={clientName} onChange={e => setClientName(e.target.value)} placeholder="e.g., Dorothy Anderson Residence" style={{width:'100%',padding:'12px 16px',border:'2px solid var(--gray-200)',borderRadius:8,fontSize:15,outline:'none'}} />
+                  </div>
+                  <div>
+                    <label style={{display:'block',fontSize:13,fontWeight:600,color:'var(--gray-700)',marginBottom:4}}>Property Address</label>
+                    <input type="text" value={clientAddress} onChange={e => setClientAddress(e.target.value)} placeholder="e.g., 742 Birch Lane, Chippewa Falls, WI" style={{width:'100%',padding:'12px 16px',border:'2px solid var(--gray-200)',borderRadius:8,fontSize:15,outline:'none'}} />
+                  </div>
+                </div>
+              </div>
+
+              <div style={{textAlign:'center'}}>
+                <button className="btn btn-gold" style={{padding:'16px 48px',fontSize:17}} onClick={() => setStarted(true)}>
+                  <i className="fas fa-clipboard-check"></i> Begin Audit
+                </button>
+              </div>
+
+              <div className="cta-section fade-in" style={{animationDelay:'.2s'}}>
+                <h3>Schedule Your Professional Audit</h3>
+                <p>Want a certified Fire Inspector to conduct this assessment in person? Our team serves the entire Chippewa Valley.</p>
+                <a href="https://rockwellhomemanagement.com" className="btn btn-gold" style={{textDecoration:'none'}}>
+                  <i className="fas fa-calendar"></i> Request an Assessment
+                </a>
+                <div className="trust-badges">
+                  <div className="trust-badge"><i className="fas fa-shield-halved"></i> ADRC-Approved Resource</div>
+                  <div className="trust-badge"><i className="fas fa-certificate"></i> Certified Fire Inspector</div>
+                  <div className="trust-badge"><i className="fas fa-building-columns"></i> Dual Chamber Member</div>
+                  <div className="trust-badge"><i className="fas fa-lock"></i> Coalition Cyber Insured</div>
+                </div>
+              </div>
+            </div>
+            <div className="footer">
+              &copy; 2026 Rockwell Home Management, LLC — Chippewa Falls, WI &nbsp;|&nbsp; Preserving Assets. Protecting Independence.
+            </div>
+          </div>
+        );
+      }
+
+      if (showResults) {
+        const scoreClass = stats.score >= 80 ? 'high' : stats.score >= 60 ? 'mid' : 'low';
+        const failedItems = CATEGORIES.flatMap(c => c.items).filter(i => statuses[i.id] === 'fail');
+
+        return (
+          <div>
+            <div className="audit-header" style={{padding:'32px 24px'}}>
+              <h1 style={{fontSize:24}}>Audit Results</h1>
+              <p>{clientName || 'Home Safety & Readiness Audit'} — {new Date().toLocaleDateString()}</p>
+            </div>
+            <div className="audit-content">
+              <div className="results-card fade-in">
+                <div className={`score-circle ${scoreClass}`}>
+                  <div className="score-num">{stats.score}</div>
+                  <div className="score-label">Score</div>
+                </div>
+                <h2 style={{fontSize:20,fontWeight:700,color:'var(--navy)',marginBottom:4}}>
+                  {stats.score >= 90 ? 'Excellent — Well Protected' : stats.score >= 75 ? 'Good — Minor Improvements Needed' : stats.score >= 60 ? 'Fair — Several Items Need Attention' : 'Needs Improvement — Action Required'}
+                </h2>
+                <p style={{fontSize:14,color:'var(--gray-500)'}}>
+                  {clientAddress || 'Property assessed'} on {new Date().toLocaleDateString()}
+                </p>
+                <div className="result-grid">
+                  <div className="result-stat"><div className="num" style={{color:'var(--green)'}}>{stats.pass}</div><div className="lab">Passed</div></div>
+                  <div className="result-stat"><div className="num" style={{color:'var(--red)'}}>{stats.fail}</div><div className="lab">Failed</div></div>
+                  <div className="result-stat"><div className="num" style={{color:'var(--gray-400)'}}>{stats.na}</div><div className="lab">N/A</div></div>
+                </div>
+              </div>
+
+              {failedItems.length > 0 && (
+                <div className="intro-section fade-in">
+                  <h2 style={{color:'var(--red)'}}><i className="fas fa-exclamation-triangle" style={{marginRight:8}}></i>Items Requiring Attention ({failedItems.length})</h2>
+                  {failedItems.map(item => (
+                    <div key={item.id} style={{padding:'12px 0',borderBottom:'1px solid var(--gray-100)',display:'flex',gap:12,alignItems:'flex-start'}}>
+                      <span style={{background:'var(--red-light)',color:'var(--red)',width:28,height:28,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,flexShrink:0}}>
+                        {item.id}
+                      </span>
+                      <div>
+                        <div style={{fontSize:14,fontWeight:600}}>{item.text}</div>
+                        {notes[item.id] && <div style={{fontSize:13,color:'var(--gray-500)',marginTop:4,fontStyle:'italic'}}>Note: {notes[item.id]}</div>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {CATEGORIES.map(cat => {
+                const cs = catStats(cat.items);
+                return (
+                  <div key={cat.id} className="intro-section fade-in" style={{padding:20,marginBottom:12}}>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:10}}>
+                        <i className={`fas ${cat.icon}`} style={{color:'var(--gold)',fontSize:18}}></i>
+                        <h3 style={{fontSize:15,fontWeight:700}}>{cat.name}</h3>
+                      </div>
+                      <span style={{fontSize:14,fontWeight:700,color:cs.score>=80?'var(--green)':cs.score>=60?'var(--yellow)':'var(--red)'}}>{cs.score}%</span>
+                    </div>
+                    <div style={{display:'flex',gap:16,marginTop:8,fontSize:12,color:'var(--gray-500)'}}>
+                      <span><i className="fas fa-check" style={{color:'var(--green)',marginRight:4}}></i>{cs.pass} Pass</span>
+                      <span><i className="fas fa-times" style={{color:'var(--red)',marginRight:4}}></i>{cs.fail} Fail</span>
+                      <span><i className="fas fa-minus" style={{color:'var(--gray-400)',marginRight:4}}></i>{cs.na} N/A</span>
+                    </div>
+                  </div>
+                );
+              })}
+
+              <div className="cta-section">
+                <h3>Ready to Address These Findings?</h3>
+                <p>Rockwell Home Management can help resolve every item on this list. Our service plans start at $129/month and include ongoing monitoring, maintenance coordination, and peace of mind.</p>
+                <a href="https://rockwellhomemanagement.com" className="btn btn-gold" style={{textDecoration:'none',marginRight:12}}>
+                  <i className="fas fa-phone"></i> Schedule a Consultation
+                </a>
+                <button className="btn btn-outline" style={{color:'white',borderColor:'rgba(255,255,255,.3)'}} onClick={() => window.print()}>
+                  <i className="fas fa-print"></i> Print Report
+                </button>
+              </div>
+
+              <div style={{textAlign:'center',marginTop:24}}>
+                <button className="btn btn-outline" onClick={() => setShowResults(false)}>
+                  <i className="fas fa-arrow-left"></i> Back to Audit
+                </button>
+              </div>
+            </div>
+            <div className="footer">
+              &copy; 2026 Rockwell Home Management, LLC — Chippewa Falls, WI &nbsp;|&nbsp; Preserving Assets. Protecting Independence.
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div>
+          <div className="audit-header" style={{padding:'24px'}}>
+            <h1 style={{fontSize:22}}>50-Point Safety Audit</h1>
+            <p style={{fontSize:13}}>{clientName || 'Home Safety & Readiness Audit'}{clientAddress ? ` — ${clientAddress}` : ''}</p>
+          </div>
+
+          <div className="progress-bar-container">
+            <div className="progress-info">
+              <span>{stats.answered} of 50 checked</span>
+              <span>{stats.pass} Pass / {stats.fail} Fail / {stats.na} N/A</span>
+            </div>
+            <div className="progress-track">
+              <div className="progress-fill" style={{width:`${(stats.answered/50)*100}%`}}></div>
+            </div>
+          </div>
+
+          <div className="audit-content">
+            {CATEGORIES.map(cat => {
+              const cs = catStats(cat.items);
+              const isCollapsed = collapsed[cat.id];
+              const scoreClass = cs.answered === 0 ? 'none' : cs.score >= 80 ? 'good' : cs.score >= 60 ? 'warn' : 'bad';
+
+              return (
+                <div key={cat.id} className="category fade-in">
+                  <div className="category-header" onClick={() => setCollapsed(p => ({...p, [cat.id]: !p[cat.id]}))}>
+                    <div className="category-icon"><i className={`fas ${cat.icon}`}></i></div>
+                    <div className="category-title">
+                      <h3>{cat.name}</h3>
+                      <span>{cs.answered}/{cat.items.length} checked</span>
+                    </div>
+                    <span className={`category-score ${scoreClass}`}>{cs.answered > 0 ? `${cs.score}%` : '—'}</span>
+                    <i className={`fas fa-chevron-${isCollapsed ? 'down' : 'up'}`} style={{color:'var(--gray-400)',fontSize:12}}></i>
+                  </div>
+
+                  {!isCollapsed && (
+                    <div className="category-items">
+                      {cat.items.map(item => (
+                        <div key={item.id} className="check-item">
+                          <div className="check-number">{item.id}</div>
+                          <div className="check-content">
+                            <label>{item.text}</label>
+                            <div className="sublabel">{item.sub}</div>
+                            {statuses[item.id] === 'fail' && (
+                              <textarea
+                                className="note-input"
+                                placeholder="Add note about this finding..."
+                                rows={2}
+                                value={notes[item.id] || ''}
+                                onChange={e => setNotes(p => ({...p, [item.id]: e.target.value}))}
+                              />
+                            )}
+                          </div>
+                          <div className="check-actions">
+                            <button className={`status-btn ${statuses[item.id]==='pass'?'pass':''}`} onClick={() => setStatus(item.id,'pass')} title="Pass">
+                              <i className="fas fa-check"></i>
+                            </button>
+                            <button className={`status-btn ${statuses[item.id]==='fail'?'fail':''}`} onClick={() => setStatus(item.id,'fail')} title="Fail">
+                              <i className="fas fa-times"></i>
+                            </button>
+                            <button className={`status-btn ${statuses[item.id]==='na'?'na':''}`} onClick={() => setStatus(item.id,'na')} title="N/A">
+                              <i className="fas fa-minus"></i>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            <div style={{textAlign:'center',marginTop:24}}>
+              <button className="btn btn-gold" style={{padding:'16px 48px',fontSize:17}} onClick={() => setShowResults(true)} disabled={stats.answered < 10}>
+                <i className="fas fa-chart-pie"></i> View Results & Report
+              </button>
+              <p style={{fontSize:12,color:'var(--gray-400)',marginTop:8}}>
+                {stats.answered < 10 ? `Complete at least 10 items to view results (${stats.answered}/10)` : `${stats.answered} of 50 items assessed`}
+              </p>
+            </div>
+          </div>
+          <div className="footer">
+            &copy; 2026 Rockwell Home Management, LLC &nbsp;|&nbsp; Preserving Assets. Protecting Independence.
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
