@@ -104,6 +104,27 @@
     .footer{text-align:center;padding:24px;font-size:12px;color:var(--gray-400)}
     .footer a{color:var(--gray-400)}
 
+    /* Lead Capture */
+    .lead-overlay{position:fixed;inset:0;background:rgba(15,26,48,0.92);z-index:200;display:flex;align-items:center;justify-content:center;padding:24px;animation:fadeIn .3s ease-out}
+    .lead-card{background:white;border-radius:20px;padding:48px 40px;max-width:480px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);animation:fadeIn .4s ease-out}
+    .lead-card h2{font-size:22px;font-weight:800;color:var(--navy);margin-bottom:4px}
+    .lead-card .lead-sub{font-size:14px;color:var(--gray-500);margin-bottom:24px}
+    .lead-field{margin-bottom:16px}
+    .lead-field label{display:block;font-size:12px;font-weight:700;color:var(--gray-700);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+    .lead-field input,.lead-field select{width:100%;padding:14px 16px;border:2px solid var(--gray-200);border-radius:10px;font-size:15px;font-family:inherit;outline:none;transition:border-color .2s;background:white;color:var(--gray-800)}
+    .lead-field input:focus,.lead-field select:focus{border-color:var(--gold)}
+    .lead-field input::placeholder{color:var(--gray-400)}
+    .lead-field .field-error{font-size:12px;color:var(--red);margin-top:4px}
+    .lead-privacy{font-size:12px;color:var(--gray-400);text-align:center;margin-top:16px;line-height:1.5}
+    .lead-privacy i{color:var(--green);margin-right:4px}
+    .lead-score-preview{display:flex;align-items:center;gap:16px;background:var(--gray-50);border-radius:12px;padding:16px 20px;margin-bottom:24px;border:1px solid var(--gray-200)}
+    .lead-score-mini{width:56px;height:56px;border-radius:50%;border:4px solid;display:flex;align-items:center;justify-content:center;flex-direction:column;flex-shrink:0}
+    .lead-score-mini.high{border-color:var(--green);color:var(--green)}
+    .lead-score-mini.mid{border-color:var(--yellow);color:var(--yellow)}
+    .lead-score-mini.low{border-color:var(--red);color:var(--red)}
+    .lead-score-mini .mini-num{font-size:20px;font-weight:800;line-height:1}
+    .lead-score-mini .mini-label{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+
     @media(max-width:768px){
       .audit-header h1{font-size:22px}
       .audit-content{padding:16px}
@@ -191,6 +212,15 @@
       const [collapsed, setCollapsed] = useState({});
       const [clientName, setClientName] = useState('');
       const [clientAddress, setClientAddress] = useState('');
+      // Lead capture states
+      const [showLeadCapture, setShowLeadCapture] = useState(false);
+      const [leadCaptured, setLeadCaptured] = useState(false);
+      const [leadName, setLeadName] = useState('');
+      const [leadEmail, setLeadEmail] = useState('');
+      const [leadPhone, setLeadPhone] = useState('');
+      const [leadSource, setLeadSource] = useState('');
+      const [leadErrors, setLeadErrors] = useState({});
+      const [leadSubmitting, setLeadSubmitting] = useState(false);
 
       const setStatus = (id, status) => {
         setStatuses(prev => ({ ...prev, [id]: prev[id] === status ? null : status }));
@@ -205,6 +235,75 @@
         const score = applicable > 0 ? Math.round((pass / applicable) * 100) : 0;
         return { pass, fail, na, answered, score, applicable };
       }, [statuses]);
+
+      const handleViewResults = () => {
+        if (leadCaptured) {
+          setShowResults(true);
+        } else {
+          setShowLeadCapture(true);
+        }
+      };
+
+      const validateLead = () => {
+        const errors = {};
+        if (!leadName.trim()) errors.name = 'Name is required';
+        if (!leadEmail.trim()) errors.email = 'Email is required';
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(leadEmail.trim())) errors.email = 'Enter a valid email';
+        if (!leadPhone.trim()) errors.phone = 'Phone number is required';
+        else if (leadPhone.replace(/\D/g, '').length < 10) errors.phone = 'Enter a valid phone number';
+        return errors;
+      };
+
+      const handleLeadSubmit = async () => {
+        const errors = validateLead();
+        setLeadErrors(errors);
+        if (Object.keys(errors).length > 0) return;
+
+        setLeadSubmitting(true);
+
+        // Build lead data payload
+        const leadData = {
+          name: leadName.trim(),
+          email: leadEmail.trim().toLowerCase(),
+          phone: leadPhone.trim(),
+          source: leadSource || 'Not specified',
+          auditScore: stats.score,
+          auditDate: new Date().toISOString(),
+          clientName: clientName || 'Self-assessment',
+          clientAddress: clientAddress || 'Not provided',
+          passCount: stats.pass,
+          failCount: stats.fail,
+          naCount: stats.na,
+          failedItems: CATEGORIES.flatMap(c => c.items).filter(i => statuses[i.id] === 'fail').map(i => i.text),
+        };
+
+        // Send to backend (with fallback)
+        try {
+          const res = await fetch('https://rockwell-api-production.up.railway.app/leads', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(leadData),
+          });
+          if (!res.ok) throw new Error('API error');
+        } catch (err) {
+          // Store locally as fallback
+          const stored = JSON.parse(localStorage.getItem('rockwell_leads') || '[]');
+          stored.push(leadData);
+          localStorage.setItem('rockwell_leads', JSON.stringify(stored));
+        }
+
+        setLeadCaptured(true);
+        setShowLeadCapture(false);
+        setShowResults(true);
+        setLeadSubmitting(false);
+      };
+
+      const formatPhoneInput = (val) => {
+        const digits = val.replace(/\D/g, '').slice(0, 10);
+        if (digits.length <= 3) return digits;
+        if (digits.length <= 6) return `(${digits.slice(0,3)}) ${digits.slice(3)}`;
+        return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
+      };
 
       const catStats = (items) => {
         const p = items.filter(i => statuses[i.id] === 'pass').length;
@@ -442,13 +541,89 @@
             })}
 
             <div style={{textAlign:'center',marginTop:24}}>
-              <button className="btn btn-gold" style={{padding:'16px 48px',fontSize:17}} onClick={() => setShowResults(true)} disabled={stats.answered < 10}>
+              <button className="btn btn-gold" style={{padding:'16px 48px',fontSize:17}} onClick={handleViewResults} disabled={stats.answered < 10}>
                 <i className="fas fa-chart-pie"></i> View Results & Report
               </button>
               <p style={{fontSize:12,color:'var(--gray-400)',marginTop:8}}>
                 {stats.answered < 10 ? `Complete at least 10 items to view results (${stats.answered}/10)` : `${stats.answered} of 50 items assessed`}
               </p>
             </div>
+
+            {/* LEAD CAPTURE MODAL */}
+            {showLeadCapture && (
+              <div className="lead-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowLeadCapture(false); }}>
+                <div className="lead-card">
+                  <div style={{textAlign:'center',marginBottom:24}}>
+                    <div style={{width:56,height:56,borderRadius:14,background:'linear-gradient(135deg,var(--navy),var(--navy-light))',display:'inline-flex',alignItems:'center',justifyContent:'center',marginBottom:12}}>
+                      <i className="fas fa-chart-pie" style={{color:'var(--gold)',fontSize:24}}></i>
+                    </div>
+                    <h2>Your Audit is Complete!</h2>
+                    <p className="lead-sub">Enter your info below to unlock your personalized Safety Report</p>
+                  </div>
+
+                  <div className="lead-score-preview">
+                    <div className={`lead-score-mini ${stats.score >= 80 ? 'high' : stats.score >= 60 ? 'mid' : 'low'}`}>
+                      <div className="mini-num">{stats.score}</div>
+                      <div className="mini-label">Score</div>
+                    </div>
+                    <div>
+                      <div style={{fontSize:15,fontWeight:700,color:'var(--navy)'}}>
+                        {stats.score >= 90 ? 'Excellent' : stats.score >= 75 ? 'Good' : stats.score >= 60 ? 'Fair' : 'Needs Attention'}
+                      </div>
+                      <div style={{fontSize:13,color:'var(--gray-500)'}}>{stats.pass} passed, {stats.fail} failed, {stats.na} N/A</div>
+                    </div>
+                  </div>
+
+                  <div className="lead-field">
+                    <label>Full Name *</label>
+                    <input type="text" placeholder="e.g., Margaret Anderson" value={leadName} onChange={e => setLeadName(e.target.value)} />
+                    {leadErrors.name && <div className="field-error">{leadErrors.name}</div>}
+                  </div>
+
+                  <div className="lead-field">
+                    <label>Email Address *</label>
+                    <input type="email" placeholder="you@example.com" value={leadEmail} onChange={e => setLeadEmail(e.target.value)} />
+                    {leadErrors.email && <div className="field-error">{leadErrors.email}</div>}
+                  </div>
+
+                  <div className="lead-field">
+                    <label>Phone Number *</label>
+                    <input type="tel" placeholder="(715) 555-1234" value={leadPhone} onChange={e => setLeadPhone(formatPhoneInput(e.target.value))} />
+                    {leadErrors.phone && <div className="field-error">{leadErrors.phone}</div>}
+                  </div>
+
+                  <div className="lead-field">
+                    <label>How Did You Hear About Us?</label>
+                    <select value={leadSource} onChange={e => setLeadSource(e.target.value)}>
+                      <option value="">Select one (optional)</option>
+                      <option value="Chamber of Commerce">Chamber of Commerce</option>
+                      <option value="ADRC Referral">ADRC Referral</option>
+                      <option value="Estate Attorney">Estate Attorney</option>
+                      <option value="Hospital/Discharge Planner">Hospital / Discharge Planner</option>
+                      <option value="Realtor">Realtor</option>
+                      <option value="Financial Advisor">Financial Advisor</option>
+                      <option value="Friend/Family">Friend or Family</option>
+                      <option value="Google Search">Google Search</option>
+                      <option value="Social Media">Social Media</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  <button className="btn btn-gold" style={{width:'100%',padding:'16px',fontSize:16}} onClick={handleLeadSubmit} disabled={leadSubmitting}>
+                    {leadSubmitting ? (
+                      <span>Preparing Your Report...</span>
+                    ) : (
+                      <span><i className="fas fa-unlock" style={{marginRight:8}}></i>Unlock My Safety Report</span>
+                    )}
+                  </button>
+
+                  <div className="lead-privacy">
+                    <i className="fas fa-shield-halved"></i> Your information is secure and will never be shared with third parties.<br />
+                    Rockwell Home Management — Preserving Assets. Protecting Independence.
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
           <div className="footer">
             &copy; 2026 Rockwell Home Management, LLC &nbsp;|&nbsp; Preserving Assets. Protecting Independence.
