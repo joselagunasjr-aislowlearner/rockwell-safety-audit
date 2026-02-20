@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#1B2A4A">
   <title>50-Point Home Safety & Readiness Audit — Rockwell Home Management</title>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
@@ -141,6 +142,12 @@
   <script type="text/babel">
     const { useState, useMemo } = React;
 
+    // Supabase client for lead capture
+    const supabase = window.supabase.createClient(
+      'https://kihzwozrqcoqjkwvoxjg.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpaHp3b3pycWNvcWprd3ZveGpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1Mzk1MDEsImV4cCI6MjA4NzExNTUwMX0.6JYyuKiol8wMuOxw-i0JiDyOm6oZQz2z0hu9SAj8qLU'
+    );
+
     const CATEGORIES = [
       { id: 'fire', name: 'Fire Safety', icon: 'fa-fire-extinguisher', items: [
         { id: 1, text: 'Smoke detectors installed and functional on every level', sub: 'Test monthly; replace batteries annually' },
@@ -261,34 +268,36 @@
 
         setLeadSubmitting(true);
 
-        // Build lead data payload
+        const failedItems = CATEGORIES.flatMap(c => c.items).filter(i => statuses[i.id] === 'fail').map(i => i.text);
+
+        // Build lead data for Supabase
         const leadData = {
           name: leadName.trim(),
           email: leadEmail.trim().toLowerCase(),
           phone: leadPhone.trim(),
           source: leadSource || 'Not specified',
-          auditScore: stats.score,
-          auditDate: new Date().toISOString(),
-          clientName: clientName || 'Self-assessment',
-          clientAddress: clientAddress || 'Not provided',
-          passCount: stats.pass,
-          failCount: stats.fail,
-          naCount: stats.na,
-          failedItems: CATEGORIES.flatMap(c => c.items).filter(i => statuses[i.id] === 'fail').map(i => i.text),
+          audit_score: stats.score,
+          client_name: clientName || 'Self-assessment',
+          client_address: clientAddress || 'Not provided',
+          audit_data: {
+            pass_count: stats.pass,
+            fail_count: stats.fail,
+            na_count: stats.na,
+            failed_items: failedItems,
+            audit_date: new Date().toISOString(),
+          },
+          status: 'new',
         };
 
-        // Send to backend (with fallback)
+        // Insert into Supabase leads table
         try {
-          const res = await fetch('https://rockwell-api-production.up.railway.app/leads', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(leadData),
-          });
-          if (!res.ok) throw new Error('API error');
+          const { error } = await supabase.from('leads').insert(leadData);
+          if (error) throw error;
         } catch (err) {
-          // Store locally as fallback
+          // Fallback to localStorage if Supabase is unreachable
+          console.warn('Supabase insert failed, storing locally:', err);
           const stored = JSON.parse(localStorage.getItem('rockwell_leads') || '[]');
-          stored.push(leadData);
+          stored.push({ ...leadData, auditScore: stats.score, failCount: stats.fail, auditDate: new Date().toISOString() });
           localStorage.setItem('rockwell_leads', JSON.stringify(stored));
         }
 
