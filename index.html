@@ -289,10 +289,52 @@
           status: 'new',
         };
 
-        // Insert into Supabase leads table
+        // Insert into Supabase leads table + safety_audits table
         try {
           const { error } = await supabase.from('leads').insert(leadData);
           if (error) throw error;
+
+          // Also save the full audit record to safety_audits table
+          const allItems = CATEGORIES.flatMap(c => c.items);
+          const auditRecord = {
+            auditor_name: 'Jose Lagunas Jr.',
+            audit_date: new Date().toISOString().split('T')[0],
+            overall_score: stats.score,
+            status: 'completed',
+            findings: {
+              client_name: clientName || leadData.client_name,
+              client_address: clientAddress || leadData.client_address,
+              lead_name: leadName.trim(),
+              lead_email: leadEmail.trim().toLowerCase(),
+              lead_phone: leadPhone.trim(),
+              lead_source: leadSource || 'Not specified',
+              pass_count: stats.pass,
+              fail_count: stats.fail,
+              na_count: stats.na,
+              total_items: 50,
+              categories: CATEGORIES.map(cat => {
+                const cs = catStats(cat.items);
+                return {
+                  id: cat.id,
+                  name: cat.name,
+                  score: cs.score,
+                  pass: cs.pass,
+                  fail: cs.fail,
+                  na: cs.na,
+                  items: cat.items.map(item => ({
+                    id: item.id,
+                    text: item.text,
+                    sub: item.sub,
+                    status: statuses[item.id] || 'not_checked',
+                    note: notes[item.id] || null,
+                  })),
+                };
+              }),
+              failed_items: failedItems,
+              audit_completed_at: new Date().toISOString(),
+            },
+          };
+          await supabase.from('safety_audits').insert(auditRecord);
         } catch (err) {
           // Fallback to localStorage if Supabase is unreachable
           console.warn('Supabase insert failed, storing locally:', err);
